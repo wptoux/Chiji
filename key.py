@@ -1,8 +1,0 @@
-# 百度AIP
-AIP_APP_ID = '10662052'
-AIP_API_KEY = 'BYIKECybem5hLf2yLKHt3YL4'
-AIP_SECRET_KEY = '54Gc3ED41jcj5xPfXiQMZxuvlvYtGGfr'
-
-# Google custom search
-G_KEY = 'AIzaSyBUPnxUmLLBcDg90ePFuSUUAS5ov9pM_gc'
-G_CX = '018331586364722641289:r3cvkpozqwq'
