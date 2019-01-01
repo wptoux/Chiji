@@ -1,23 +1,32 @@
+import concurrent.futures
 import subprocess
 import time
 import re
 
+import numpy as np
+
 import cv2
 from aip import AipOcr
 
-import pytesseract
+# import pytesseract
 
 import key
 
 client = AipOcr(key.AIP_APP_ID, key.AIP_API_KEY, key.AIP_SECRET_KEY)
 
+executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
+
 
 def capture_img():
-    img_name = './tmp/screenshot%s.png' % time.time()
-    subprocess.call("adb\\adb shell /system/bin/screencap -p /sdcard/screenshot.png")
-    subprocess.call("adb\\adb pull /sdcard/screenshot.png %s" % img_name)
-
-    return cv2.imread(img_name)
+    print('Capturing img...', end=' ')
+    st = time.time()
+    pipe = subprocess.Popen(".\\adb\\adb shell screencap -p",
+                            stdin=subprocess.PIPE,
+                            stdout=subprocess.PIPE, shell=True)
+    image_bytes = pipe.stdout.read().replace(b'\r\n', b'\n')
+    image = cv2.imdecode(np.fromstring(image_bytes, np.uint8), cv2.IMREAD_COLOR)
+    print('Time:', time.time() - st)
+    return image
 
 
 def tap(x, y):
@@ -55,12 +64,18 @@ def ocr(im, regions, engine='baidu_single'):
         ocr_im = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
 
         ret = []
+        tasks = []
         for r in regions:
             _im = ocr_im[r[0]:r[1], r[2]:r[3]]
 
-            _, byte_arr = cv2.imencode('.jpg', _im, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
-            aip_rst = client.basicGeneral(byte_arr.tobytes(), {'probability': 'true'})
+            _im = cv2.resize(_im, (int(_im.shape[1] / 2.5), int(_im.shape[0] // 2.5)))
 
+            _, byte_arr = cv2.imencode('.jpg', _im, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
+            # aip_rst = client.basicGeneral(byte_arr.tobytes(), {'probability': 'true'})
+            tasks.append(executor.submit(lambda x: client.basicGeneral(x.tobytes(), {'probability': 'true'}), byte_arr))
+
+        for t in tasks:
+            aip_rst = t.result()
             words = []
             for p in aip_rst['words_result']:
                 words.append(p['words'])

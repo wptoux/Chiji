@@ -20,14 +20,15 @@ class State:
         self.state = 'startup'
 
     def chg_state(self, state_to):
-        print('Current state:', self.state)
-        print('Change to:', state_to)
+        print(self.state, '--->', state_to)
 
         self.state = state_to
 
 
 if __name__ == '__main__':
     env = lmdb.open('db')
+
+    utils.capture_img()
 
     content_offset = 900
     regions = [(0, 280, 0, 1080), (300, 450, 120, 980), (450, 650, 120, 980), (650, 800, 120, 980), (800, 1000, 120, 980)]
@@ -64,8 +65,11 @@ if __name__ == '__main__':
             score, pos = _match(img, tp_main)
             if score > 0.20:
                 simg = img[content_offset:, :, :]
-                print('Call ocr...')
+                print('Call ocr...', end=' ')
+                st = time.time()
                 ocr_rst = utils.ocr(simg, regions)
+                et = time.time()
+                print('Time: %.2f' % (et - st))
                 print('Question:', ocr_rst)
 
                 if '' not in ocr_rst:
@@ -113,7 +117,7 @@ if __name__ == '__main__':
                                 txn.put(question.encode(), ans.encode())
 
                             state.chg_state('run')
-                            time.sleep(4)
+                            time.sleep(5.5)
                             break
         elif state.state == 'retry':
             score, pos = _match(img, tp_retry)
